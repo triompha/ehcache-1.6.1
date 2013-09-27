@@ -49,6 +49,8 @@ public class MemoryStore implements Store {
     /**
      * This is the default from {@link java.util.concurrent.ConcurrentHashMap}. It should never be used, because
      * we size the map to the max size of the store.
+     * 这句话从代码的角度看明显是错误的，因为当put对象的时候是先放入进去，然后再根据算法，进行剔除。
+     * 
      */
     protected static final float DEFAULT_LOAD_FACTOR = .75f;
 
