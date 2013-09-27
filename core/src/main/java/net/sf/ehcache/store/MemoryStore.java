@@ -49,12 +49,18 @@ public class MemoryStore implements Store {
     /**
      * This is the default from {@link java.util.concurrent.ConcurrentHashMap}. It should never be used, because
      * we size the map to the max size of the store.
-     * 这句话从代码的角度看明显是错误的，因为当put对象的时候是先放入进去，然后再根据算法，进行剔除。
      * 
+     * map的增量因子
+     * 
+     * 这句话从代码的角度看明显是错误的，因为当put对象的时候是先放入进去，然后再根据算法，进行剔除。
+     * 所以一但接近限制，然而如果设置的最大key值的key值很大时就有可能浪费好多内存。
+     * 这个需要修复。
      */
     protected static final float DEFAULT_LOAD_FACTOR = .75f;
 
     /**
+     * 
+     * 为了map设置 CONCURRENCY_LEVEL 个分区。
      * Set optimisation for 100 concurrent threads.
      */
     protected static final int CONCURRENCY_LEVEL = 100;
@@ -68,10 +74,6 @@ public class MemoryStore implements Store {
      */
     protected Policy policy;
 
-    /**
-     * when sampling elements, whether to iterate or to use the keySample array for faster random access
-     */
-    protected boolean useKeySample;
 
     /**
      * The cache this store is associated with.
@@ -98,6 +100,11 @@ public class MemoryStore implements Store {
      * The maximum size of the store
      */
     protected int maximumSize;
+    
+    /**
+     * when sampling elements, whether to iterate or to use the keySample array for faster random access
+     */
+    protected boolean useKeySample;
     private AtomicReferenceArray<Object> keyArray;
     private AtomicInteger keySamplePointer;
 
@@ -389,6 +396,8 @@ public class MemoryStore implements Store {
 
 
     /**
+     * 过期则移除，不过期则放入硬盘
+     * 
      * Evict the <code>Element</code>.
      * <p/>
      * Evict means that the <code>Element</code> is:
@@ -476,6 +485,8 @@ public class MemoryStore implements Store {
      * Saves the key to our fast access AtomicReferenceArray
      * <p/>
      * We save the new key if:
+     * 默认应该不会新key覆盖旧key，因为keyArray的size与map的size一致
+     * 
      * <ol>
      * <li>
      * <li>
@@ -507,6 +518,8 @@ public class MemoryStore implements Store {
      * A bounds-safe incrementer, which loops back to zero when it exceeds the array size.
      * <p/>
      * This method is not synchronized. It uses CAS and loops until is can set the value.
+     * 
+     * CAS，循环判断获取
      */
     protected int incrementIndex() {
         int newVal;
@@ -541,17 +554,21 @@ public class MemoryStore implements Store {
         }
 
         // If the element is expired, remove
+        //如果已经过期，则从memorystore中直接删除，并通知监听者。
         if (element.isExpired()) {
             remove(element.getObjectKey());
             notifyExpiry(element);
             return;
         }
-
+        //如果没有过期，则依据是否放到硬盘中，对数据进行处理，如果设置，则放到硬盘中
+        //并在memorystore中删除，不通知监听者。
         evict(element);
         remove(element.getObjectKey());
     }
 
     /**
+     * 剔除元素的核心算法。
+     * 
      * Find a "relatively" unused element, but not the element just added.
      */
     protected final Element findEvictionCandidate(Element elementJustAdded) {
@@ -567,7 +584,7 @@ public class MemoryStore implements Store {
                 return element;
             }
 
-            //To svoid an expensive search via iterating through the CHM, which is very expensive
+            //To avoid an expensive search via iterating through the CHM, which is very expensive
             //but it is guaranteed to not return null, which would cause a memory leak
             //iterate through our list, which is really fast
             //If we cannot evict in accordance in the algorithm, drop back to an eviction based on FIFO
@@ -598,6 +615,9 @@ public class MemoryStore implements Store {
 
 
     /**
+     * 利用keyArray随机获取 15 个数据。
+     * 这个效率真不错。
+     * 
      * Uses random numbers to sample the entire map.
      * <p/>
      * This implemenation uses a key array.
@@ -618,6 +638,13 @@ public class MemoryStore implements Store {
     }
 
     /**
+     * 如果数据量很大的话，这个感觉还是比较消耗性能的。
+     * 不知道iterator.next是否消耗性能。
+     * 
+     * 如果量大于15  会取 15 个随即数据
+     * 
+     * 会将 总数据/15 ，用于确定获取随机数的上限。以确保不会超限。
+     * 
      * Uses random numbers to sample the entire map.
      * <p/>
      * This implemenation uses the {@link ConcurrentHashMap} iterator.
