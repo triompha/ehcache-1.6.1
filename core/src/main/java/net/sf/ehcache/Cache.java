@@ -218,6 +218,7 @@ public class Cache implements Ehcache {
      * are used until actually needed. Threads are added to the pool up to a maximum of 10. The keep alive
      * time is 60 seconds, after which, if they are not required they will be stopped and collected.
      * <p/>
+     * 现在只用作异步加载cache
      * The executorService is only used for cache loading, and is created lazily on demand to avoid unnecessary resource
      * usage.
      * <p/>
@@ -231,16 +232,19 @@ public class Cache implements Ehcache {
      * <p/>
      * The {@link net.sf.ehcache.config.ConfigurationFactory} and clients can create these.
      * <p/>
-     * A client can specify their own settings here and pass the {@link Cache} object
-     * into {@link CacheManager#addCache} to specify parameters other than the defaults.
+     * A client can specify their own settings here 
+     * and pass the {@link Cache} object into {@link CacheManager#addCache} to specify parameters other than the defaults.
      * <p/>
      * Only the CacheManager can initialise them.
      * <p/>
      * This constructor creates disk stores, if specified, that do not persist between restarts.
      * <p/>
-     * The default expiry thread interval of 120 seconds is used. This is the interval between runs
-     * of the expiry thread, where it checks the disk store for expired elements. It is not the
-     * the timeToLiveSeconds.
+     * 
+     * 只会启一个定时线程，检查diskstore的超时。只是diskstore
+     * 
+     * The default expiry thread interval of 120 seconds is used.
+     * This is the interval between runs of the expiry thread, where it checks the disk store for expired elements. 
+     * It is not the the timeToLiveSeconds.
      *
      * @param name                the name of the cache. Note that "default" is a reserved name for the defaultCache.
      * @param maxElementsInMemory the maximum number of elements in memory, before they are evicted
@@ -618,6 +622,8 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 设置变量之后的初始化，只有经过这个步骤后，status才变为alive
+     * 
      * Newly created caches do not have a {@link net.sf.ehcache.store.MemoryStore} or a {@link net.sf.ehcache.store.DiskStore}.
      * <p/>
      * This method creates those and makes the cache ready to accept elements
@@ -707,8 +713,8 @@ public class Cache implements Ehcache {
     /**
      * Put an element in the cache.
      * <p/>
-     * Resets the access statistics on the element, which would be the case if it has previously been
-     * gotten from a cache, and is now being put back.
+     * put方法会重置这个element的的统计信息，如果这个key之前存在。
+     * Resets the access statistics on the element, which would be the case if it has previously been gotten from a cache, and is now being put back.
      * <p/>
      * Also notifies the CacheEventListener that:
      * <ul>
@@ -716,7 +722,9 @@ public class Cache implements Ehcache {
      * <li>if the element exists in the cache, that an update has occurred, even if the element would be expired
      * if it was requested
      * </ul>
-     * <p/>                  
+     * <p/>  
+     * 
+     * 向其他集群同步的时候是异步的
      * Caches which use synchronous replication can throw RemoteCacheException here if the replication to the cluster fails.
      * This exception should be caught in those cirucmstances.
      *
@@ -735,7 +743,7 @@ public class Cache implements Ehcache {
      * Put an element in the cache.
      * <p/>
      * Resets the access statistics on the element, which would be the case if it has previously been
-     * gotten from a cache, and is now being put back.               �
+     * gotten from a cache, and is now being put back.             
      * <p/>
      * Also notifies the CacheEventListener that:
      * <ul>
@@ -784,9 +792,11 @@ public class Cache implements Ehcache {
         boolean elementExists;
         Object key = element.getObjectKey();
         elementExists = isElementInMemory(key) || isElementOnDisk(key);
+        //如果key值之前存在，则将 最后访问时间设置为当前。
         if (elementExists) {
             element.updateUpdateStatistics();
         }
+        //取cache设置的基本时间信息，如果put时没有设置时间信息。
         applyDefaultsToElementWithoutLifespanSet(element);
 
         backOffIfDiskSpoolFull();
@@ -803,6 +813,9 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 如果disc缓冲池满了，则进行等待。
+     * 这个可能导致写操作的堆积。
+     * 
      * wait outside of synchronized block so as not to block readers
      * If the disk store spool is full wait a short time to give it a chance to
      * catch up.
@@ -832,12 +845,8 @@ public class Cache implements Ehcache {
 
     /**
      * Put an element in the cache, without updating statistics, or updating listeners. This is meant to be used
-     * in conjunction with {@link #getQuiet}.
+     * in conjunction(结合使用) with {@link #getQuiet}.
      * Synchronization is handled within the method.
-     * <p/>
-     * Caches which use synchronous replication can throw RemoteCacheException here if the replication to the cluster fails.
-     * This exception should be caught in those cirucmstances.
-     * <p/>
      *
      * @param element A cache Element. If Serializable it can fully participate in replication and the DiskStore. If it is
      *                <code>null</code> or the key is <code>null</code>, it is ignored as a NOOP.
@@ -917,6 +926,9 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 其实我们常用的就是从本地缓存获取，获取不到的话从远程（数据存储区域）获取，并存储到本地缓存。
+     * 我到觉得可以使用这个，使代码更清晰。
+     * 嗯，，不错的选择。
      * This method will return, from the cache, the Element associated with the argument "key".
      * <p/>
      * If the Element is not in the cache, the associated cache loader will be called. That is either the CacheLoader passed in, or if null,
@@ -950,6 +962,7 @@ public class Cache implements Ehcache {
             if (element != null) {
                 return element;
             }
+            //异步获取并存储到本地缓存中。
             Future future = asynchronousLoad(key, loader, loaderArgument);
             //wait for result
             future.get();
@@ -960,6 +973,8 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 异步将key对应的数据从，cacheloaders中加载进入本地缓存。
+     * 
      * The load method provides a means to "pre load" the cache. This method will, asynchronously, load the specified
      * object into the cache using the associated cacheloader. If the object already exists in the cache, no action is
      * taken. If no loader is associated with the object, no object will be loaded into the cache. If a problem is
@@ -995,6 +1010,10 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * load的批量版
+     * 相对于下面的方法，这个方法有点对于，
+     * 因为   asynchronousLoadAll 会检查key在本地缓存是否存在
+     * 但区别在于这个会有返回值
      * The getAll method will return, from the cache, a Map of the objects associated with the Collection of keys in argument "keys".
      * If the objects are not in the cache, the associated cache loader will be called. If no loader is associated with an object,
      * a null is returned. If a problem is encountered during the retrieving or loading of the objects, an exception will be thrown.
@@ -1006,8 +1025,7 @@ public class Cache implements Ehcache {
      * <p/>
      * Note. If the getAll exceeds the maximum cache size, the returned map will necessarily be less than the number specified.
      * <p/>
-     * Because this method may take a long time to complete, it is not synchronized. The underlying cache operations
-     * are synchronized.
+     * Because this method may take a long time to complete, it is not synchronized. The underlying cache operations are synchronized.
      * <p/>
      * The constructs package provides similar functionality using the
      * decorator {@link net.sf.ehcache.constructs.blocking.SelfPopulatingCache}
@@ -1046,6 +1064,7 @@ public class Cache implements Ehcache {
                 }
 
                 //now load everything that's missing.
+                //异步加载所有keys对应的远程数据源的数据，并放入本地缓存。
                 Future future = asynchronousLoadAll(missingKeys, loaderArgument);
                 future.get();
 
@@ -1112,9 +1131,9 @@ public class Cache implements Ehcache {
     }
 
     /**
-     * Gets an element from the cache, without updating Element statistics. Cache statistics are
-     * still updated. Listeners are not called.
-     * <p/>
+     * Gets an element from the cache, without updating Element statistics. 
+     * <p>Cache statistics are still updated. Listeners are not called.<p/>
+     * 
      * @param key a serializable value
      * @return the element, or null, if it does not exist.
      * @throws IllegalStateException if the cache is not {@link Status#STATUS_ALIVE}
@@ -1125,9 +1144,8 @@ public class Cache implements Ehcache {
     }
 
     /**
-     * Gets an element from the cache, without updating Element statistics. Cache statistics are
-     * not updated.
-     * <p/>
+     * Gets an element from the cache, without updating Element statistics. 
+     * <p> Cache statistics are not updated. <p/>
      * Listeners are not called.
      *
      * @param key a serializable value
@@ -1148,6 +1166,8 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 返回所有的keys值，包裹内存和硬盘（如果设置了）
+     * 
      * Returns a list of all element keys in the cache, whether or not they are expired.
      * <p/>
      * The returned keys are unique and can be considered a set.
@@ -1186,6 +1206,9 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 
+     * 太昂贵了，绝对不要使用
+     * 
      * Returns a list of all element keys in the cache. Only keys of non-expired
      * elements are returned.
      * <p/>
@@ -1224,6 +1247,8 @@ public class Cache implements Ehcache {
 
 
     /**
+     * 比较快速的查找，但是如果量很大的话，也不要使用
+     * 
      * Returns a list of all elements in the cache, whether or not they are expired.
      * <p/>
      * The returned keys are not unique and may contain duplicates. If the cache is only
@@ -1615,6 +1640,10 @@ public class Cache implements Ehcache {
 
 
     /**
+     * 花擦，这个实现有点不好啊。
+     * 不是直接.getSize,而是获取所有keys之后再.getSize
+     * 最好用 getMemoryStoreSize() + getDiskStoreSize() 代替
+     * 
      * Gets the size of the cache. This is a subtle concept. See below.
      * <p/>
      * The size is the number of {@link Element}s in the {@link MemoryStore} plus
@@ -1647,6 +1676,8 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 这个实现很给力，但很耗时，没办法，不能用啊。
+     * 
      * Gets the size of the memory store for this cache. This method relies on calculating
      * Serialized sizes. If the Element values are not Serializable they will show as zero.
      * <p/>
@@ -1765,7 +1796,12 @@ public class Cache implements Ehcache {
 
 
     /**
+     * to be change
+     * 
      * Checks whether this cache element has expired.
+     * 我去，检查超时还加锁，这也太昂贵了把，
+     * 之后必须给去掉。其实这部分根部不需要加锁
+     * 
      * <p/>
      * The element is expired if:
      * <ol>
@@ -1973,6 +2009,9 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 清空所有的超时对象，但是从代码调用上，没有发现调用者，应该是给用户自己调用的。
+     * 可以思考一种简单的方法，用以实现 定时清除部分超时对象。
+     * 
      * Causes all elements stored in the Cache to be synchronously checked for expiry, and if expired, evicted.
      */
     public void evictExpiredElements() {
@@ -2002,6 +2041,8 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * An extremely expensive check！！！！1
+     * 不要使用
      * An extremely expensive check to see if the value exists in the cache. This implementation is O(n). Ehcache
      * is not designed for efficient access in this manner.
      * <p/>
@@ -2275,6 +2316,7 @@ public class Cache implements Ehcache {
 
     /**
      * Does the asynchronous loading.
+     * 异步从远程数据源加载数据的 核心算法。
      *
      * @param key
      * @param specificLoader a specific loader to use. If null the default loader is used.
@@ -2393,6 +2435,7 @@ public class Cache implements Ehcache {
     }
 
     /**
+     * 异步线程service
      * @return Gets the executor service. This is not publically accessible.
      */
     ThreadPoolExecutor getExecutorService() {

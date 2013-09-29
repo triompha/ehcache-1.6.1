@@ -22,6 +22,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * 一种兼容性更高的枚举的实现
+ * 
+ * 
  * A typesafe enumeration of eviction policies.
  * The policy used to evict elements from the {@link net.sf.ehcache.store.MemoryStore}.
  * This can be one of:                                                                
