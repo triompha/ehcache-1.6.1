@@ -52,6 +52,8 @@ public abstract class AbstractPolicy implements Policy {
     }
 
     /**
+     * 根据具体实现类的 compare 方法，找出最倒霉那个元素
+     * 
      * Finds the best eviction candidate based on the sampled elements. What distuingishes this approach
      * from the classic data structures approach, is that an Element contains metadata which can be used
      * for making policy decisions, while generic data structures do not.
@@ -85,6 +87,9 @@ public abstract class AbstractPolicy implements Policy {
     }
 
     /**
+     * 
+     * 从大map中找key的，获取抽样随机数的方法
+     * 
      * Generates a random sample from a population
      *
      * @param populationSize the size to draw from
@@ -107,6 +112,9 @@ public abstract class AbstractPolicy implements Policy {
     }
 
     /**
+     * 
+     * 从sampleKeys中查找key的，获取抽样随机数的方法
+     * 
      * Generates a random set of indices
      *
      * @param arraySize the maximum number

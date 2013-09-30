@@ -483,6 +483,9 @@ public class RMICacheManagerPeerListener implements CacheManagerPeerListener {
     }
 
     /**
+     * 
+     * 当本地cache创建成功后，绑定RMI服务
+     * 
      * Called immediately after a cache has been added and activated.
      * <p/>
      * Note that the CacheManager calls this method from a synchronized method. Any attempt to call a synchronized

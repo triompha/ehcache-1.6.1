@@ -20,6 +20,10 @@ import net.sf.ehcache.CacheException;
 import net.sf.ehcache.Status;
 
 /**
+ * CacheManager发生事件的回调函数
+ * 
+ * 通常只在cacheAdd和cacheRemove时被调用
+ * 
  * Allows implementers to register callback methods that will be executed when a
  * <code>CacheManager</code> event occurs.
  *

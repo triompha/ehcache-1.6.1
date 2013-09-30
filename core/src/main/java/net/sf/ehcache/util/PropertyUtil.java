@@ -43,6 +43,7 @@ public final class PropertyUtil {
     }
 
     /**
+     * 对数据进行 trim
      * @return null if their is no property for the key, or their are no properties
      */
     public static String extractAndLogProperty(String name, Properties properties) {
@@ -61,6 +62,7 @@ public final class PropertyUtil {
     }
 
     /**
+     * 对数据进行 trim
      * @return null if their is no property for the key, or their are no properties
      */
     public static String extractAndLogProperty(String name, Map properties) {
@@ -79,6 +81,8 @@ public final class PropertyUtil {
     }
 
     /**
+     * 将 a=1,b=2,c=3类似数据转化为Properties
+     * 
      * Parse properties supplied as a comma separated list into a <code>Properties</code> object
      * @param propertiesString a comma separated list such as <code>"propertyA=s, propertyB=t"</code>
      * @return a newly constructed properties object

@@ -49,6 +49,8 @@ public class RMICacheManagerPeerProviderFactory extends CacheManagerPeerProvider
 
 
     /**
+     * 创建远程RMI服务的本地引用，用以，当本地缓存变化时通知远程服务
+     * 
      * @param properties implementation specific properties. These are configured as comma
      *                   separated name value pairs in ehcache.xml
      */

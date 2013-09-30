@@ -25,7 +25,7 @@ import java.util.List;
 
 /**
  * An interface for a cache peer to which updates are made remotely. The distribution mechanism
- * is meant to be pluggable. The requirements of RMI force this interface to exten Remote and
+ * is meant to be  pluggable. The requirements of RMI force this interface to extends Remote and
  * throw RemoteException.
  * <p/>
  * It is acknowledged that not all implementations will use Remote. Remote is just a marker interface like Serializable,

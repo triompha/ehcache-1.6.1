@@ -21,15 +21,17 @@ import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
 
 /**
- * Allows implementers to register callback methods that will be executed when a cache event
- * occurs.
+ * Cache进行设置之后的统一回调操作接口
+ * 
+ * 
+ * Allows implementers to register callback methods that will be executed when a cache event occurs.
  * The events include:
  * <ol>
  * <li>put Element
  * <li>update Element
  * <li>remove Element
  * <li>evict Element
- * <li>an Element expires, either because timeToLive or timeToIdle has been reached.
+ * <li>expire Element :an Element expires, either because timeToLive or timeToIdle has been reached.
  * <li>removeAll, which causes all elements to be cleared from the cache
  * </ol>
  * <p/>

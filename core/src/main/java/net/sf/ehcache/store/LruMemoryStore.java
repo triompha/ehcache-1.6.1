@@ -28,6 +28,9 @@ import java.util.logging.Logger;
 
 
 /**
+ * 看上去这个还没有完成。
+ * 而且方法都加锁了，效率肯定不行。
+ * 
  * An implementation of a LruMemoryStore.
  * <p/>
  * This uses {@link java.util.LinkedHashMap} as its backing map. It uses the {@link java.util.LinkedHashMap} LRU

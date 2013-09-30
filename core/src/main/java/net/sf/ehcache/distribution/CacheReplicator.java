@@ -19,6 +19,8 @@ package net.sf.ehcache.distribution;
 import net.sf.ehcache.event.CacheEventListener;
 
 /**
+ * 复制节点的 统一接口
+ * 
  * Replicates cache entries to peers of the CacheManager
  * @author <a href="mailto:gluck@thoughtworks.com">Greg Luck</a>
  * @version $Id: CacheReplicator.java 744 2008-08-16 20:10:49Z gregluck $

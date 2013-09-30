@@ -50,6 +50,10 @@ public class RMICacheManagerPeerListenerFactory extends CacheManagerPeerListener
     private static final String SOCKET_TIMEOUT_MILLIS = "socketTimeoutMillis";
 
     /**
+     * 根据设置的参数创建 CacheManagerPeerListener ，提供 RMI服务
+     * 
+     * 最后提供的是Map数据，每个协议都一刻注册一次。
+     * 
      * @param properties implementation specific properties. These are configured as comma
      *                   separated name value pairs in ehcache.xml
      */

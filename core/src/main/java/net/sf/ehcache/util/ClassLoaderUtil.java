@@ -19,6 +19,9 @@ package net.sf.ehcache.util;
 import net.sf.ehcache.CacheException;
 
 /**
+ * 反射，安全的获取 ClassLoader
+ * 生成class的工具
+ * 
  * Keeps all classloading in ehcache consistent.
  *
  * @author Greg Luck

@@ -27,6 +27,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * 根据具体的回调类型，调用CachePeer的不同方法
+ * listRemoteCachePeers是核心
+ * 
  * Listens to {@link net.sf.ehcache.CacheManager} and {@link net.sf.ehcache.Cache} events and propagates those to
  * {@link CachePeer} peers of the Cache.
  *

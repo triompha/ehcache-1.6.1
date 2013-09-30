@@ -290,6 +290,8 @@ public final class ConfigurationHelper {
 
     /**
      * Tries to load the class specified otherwise defaults to null
+     * 创建本地进程的 RMI服务，提其他服务调用。
+     * 
      */
     public Map<String, CacheManagerPeerListener> createCachePeerListeners() {
         String className = null;

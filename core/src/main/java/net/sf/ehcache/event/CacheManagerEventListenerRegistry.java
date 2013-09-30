@@ -23,6 +23,11 @@ import java.util.Iterator;
 import java.util.Set;
 
 /**
+ * 这是一个装饰者。
+ * 
+ * CacheManager 事件驱动的回调。
+ * 通常是增减cache的时候调用。。。是整个CacheManager的时间管理类
+ * 
  * Registered listeners for registering and unregistering CacheManagerEventListeners and sending notifications to registrants.
  * <p/>
  * There is one of these per CacheManager. It is a composite listener.

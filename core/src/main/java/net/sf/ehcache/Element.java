@@ -395,13 +395,13 @@ public class Element implements Serializable, Cloneable {
      * Sets the last access time to now.
      */
     public final void updateAccessStatistics() {
-        nextToLastAccessTime = lastAccessTime;
+        nextToLastAccessTime = lastAccessTime;//保留上次访问时间历史记录
         lastAccessTime = System.currentTimeMillis();
         hitCount++;
     }
 
     /**
-     * Sets the last access time to now.
+     * 更新上次修改.
      */
     public final void updateUpdateStatistics() {
         lastUpdateTime = System.currentTimeMillis();
@@ -450,6 +450,7 @@ public class Element implements Serializable, Cloneable {
         return element;
     }
 
+    //深层拷贝是这样实现的么。。有待探究和了解
     private Object deepCopy(Object oldValue) {
         Serializable newValue = null;
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -585,6 +586,8 @@ public class Element implements Serializable, Cloneable {
     }
 
     /**
+     * 
+     * 过期对象的核心算法
      * Returns the expiration time based on time to live. If this element also has a time to idle setting, the expiry
      * time will vary depending on whether the element is accessed.
      *
@@ -597,22 +600,28 @@ public class Element implements Serializable, Cloneable {
         }
 
         long expirationTime = 0;
+        //生存超时的时间
         long ttlExpiry = creationTime + timeToLive * ONE_SECOND;
 
         long mostRecentTime = Math.max(creationTime, nextToLastAccessTime);
+        
+        //没有再次被访问的超时时间
         long ttiExpiry = mostRecentTime + timeToIdle * ONE_SECOND;
 
+        //设置了生存时间 并且 （没有设置未被访问时间 或 一直没有被访问），题外话，是不是在把数据放放进去的时候，设置lastAccessTime为当前时间好的
         if (timeToLive != 0 && (timeToIdle == 0 || lastAccessTime == 0)) {
             expirationTime = ttlExpiry;
-        } else if (timeToLive == 0) {
+        } else if (timeToLive == 0) {    //如果没有设置生存时间，则取 访问过期时间
             expirationTime = ttiExpiry;
-        } else {
+        } else {                         //如果2者都设置了，并且有访问，那么取二者最小值
             expirationTime = Math.min(ttlExpiry, ttiExpiry);
         }
         return expirationTime;
     }
 
     /**
+     * 如果true则永久存储，不会检测过期
+     * 
      * @return true if the element is eternal
      */
     public boolean isEternal() {
